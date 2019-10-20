@@ -27,17 +27,17 @@
 (defvar vasttrafik-api-key nil)
 (defvar vasttrafik--known-stops nil)
 
-(defun vasttrafik-trip ()
-  (interactive)
-  (if (not vasttrafik-api-key)
-      (message "You need to specify an API key for Västtrafik first (using vasttrafik-api-key).")
-    (vasttrafik--get-access-token
-     (lambda (token)
-       (vasttrafik--pick-stop token "Start: "
-                              (lambda (start)
-                                (vasttrafik--pick-stop token "End: "
-                                                       (lambda (end)
-                                                         (vasttrafik--calculate-trip token (cdr start) (cdr end))))))))))
+(defmacro vasttrafik--with-token (token &rest body)
+  (declare (indent 1))
+  `(if (not vasttrafik-api-key)
+       (message "You need to specify an API key for Västtrafik first (using vasttrafik-api-key).")
+     (vasttrafik--get-access-token
+      (lambda (,token)
+        ,@body))))
+
+(defmacro vasttrafik--with-stop (prompt stop &rest body)
+  (declare (indent 2))
+  `(vasttrafik--pick-stop token ,prompt (lambda (,stop) ,@body)))
 
 (defun vasttrafik--pick-stop (token prompt handler)
   (ivy-read prompt vasttrafik--known-stops
@@ -46,19 +46,18 @@
                           (funcall handler s)
                         (vasttrafik--search-stops token s handler)))))
 
+(defun vasttrafik-trip ()
+  (interactive)
+  (vasttrafik--with-token token
+    (vasttrafik--with-stop "Start: " start
+      (vasttrafik--with-stop "End: " end
+        (vasttrafik--calculate-trip token (cdr start) (cdr end))))))
+
 (defun vasttrafik-table ()
   (interactive)
-  (if (not vasttrafik-api-key)
-      (message "You need to specify an API key for Västtrafik first (using vasttrafik-api-key).")
-    (ivy-read "Choose stop: " vasttrafik--known-stops
-              :action (lambda (s)
-                        (vasttrafik--get-access-token
-                         (lambda (token)
-                           (if (listp s)
-                               (vasttrafik--fetch-departures token (cdr s))
-                             (vasttrafik--search-stops token s
-                                                       (lambda (s)
-                                                         (vasttrafik--fetch-departures token (cdr s)))))))))))
+  (vasttrafik--with-token token
+    (vasttrafik--with-stop "Choose stop: " s
+      (vasttrafik--fetch-departures token (cdr s)))))
 
 (defun vasttrafik--get-access-token (on-success)
   (request
