@@ -27,7 +27,27 @@
 (defvar vasttrafik-api-key nil)
 (defvar vasttrafik--known-stops nil)
 
-(defun vasttrafik-search ()
+(defun vasttrafik-trip ()
+  (interactive)
+  (if (not vasttrafik-api-key)
+      (message "You need to specify an API key for Västtrafik first (using vasttrafik-api-key).")
+    (vasttrafik--get-access-token
+     (lambda (token)
+       (vasttrafik--pick-stop token "Start: "
+                              (lambda (start)
+                                (vasttrafik--pick-stop token "End: "
+                                                       (lambda (end)
+                                                         (message "You picked %s -> %s" start end)
+                                                         (vasttrafik--calculate-trip token (cdr start) (cdr end))))))))))
+
+(defun vasttrafik--pick-stop (token prompt handler)
+  (ivy-read prompt vasttrafik--known-stops
+            :action (lambda (s)
+                      (if (listp s)
+                          (funcall handler s)
+                        (vasttrafik--search-stops token s handler)))))
+
+(defun vasttrafik-table ()
   (interactive)
   (if (not vasttrafik-api-key)
       (message "You need to specify an API key for Västtrafik first (using vasttrafik-api-key).")
@@ -37,7 +57,9 @@
                          (lambda (token)
                            (if (listp s)
                                (vasttrafik--fetch-departures token (cdr s))
-                             (vasttrafik--search-stops token s))))))))
+                             (vasttrafik--search-stops token s
+                                                       (lambda (s)
+                                                         (vasttrafik--fetch-departures token (cdr s)))))))))))
 
 (defun vasttrafik--get-access-token (on-success)
   (request
@@ -57,7 +79,7 @@
 (defun vasttrafik--parse-token-response (data)
   (alist-get 'access_token data))
 
-(defun vasttrafik--search-stops (token query)
+(defun vasttrafik--search-stops (token query handler)
   (request
    "https://api.vasttrafik.se/bin/rest.exe/v2/location.name"
    :type "GET"
@@ -73,7 +95,7 @@
                                  (alist-get 'StopLocation (cdar data)))
                          :action (lambda (s)
                                    (push s vasttrafik--known-stops)
-                                   (vasttrafik--fetch-departures token (cdr s))))))
+                                   (funcall handler s)))))
    :error (cl-function
            (lambda (&key error-thrown &allow-other-keys)
              (message "Error while fetching Västtrafik departures: %S" error-thrown)))))
@@ -111,16 +133,57 @@
              departures)
      "\n")))
 
+(defun vasttrafik--format-line (name time track direction)
+  (format "%s: %s towards %s (track %s)"
+          (propertize (format "%s" time) 'face '(:foreground "red" :weight bold))
+          (propertize (format "%s" name) 'face '(:weight bold))
+          direction
+          track))
+
+(defun vasttrafik--format-time (origin-time &optional dest-time)
+  (if dest-time
+      (format "%s->%s" origin-time dest-time)
+    origin-time))
+
 (defun vasttrafik--format-departure (dep)
   (let ((name (alist-get 'name dep))
-        (time (alist-get 'time dep))
+        (time (vasttrafik--format-time (alist-get 'time dep)))
         (track (alist-get 'track dep))
         (direction (alist-get 'direction dep)))
-    (format "%s: %s towards %s (track %s)"
-            (propertize time 'face '(:foreground "red" :weight bold))
-            (propertize name 'face '(:weight bold))
-            direction
-            track)))
+    (vasttrafik--format-line name time track direction)))
+
+(defun vasttrafik--format-leg (leg)
+  (let ((origin (alist-get 'Origin leg))
+        (destination (alist-get 'Destination leg)))
+    (let ((name (alist-get 'name leg))
+          (time (vasttrafik--format-time
+                 (alist-get 'time origin)
+                 (alist-get 'time destination)))
+          (track (alist-get 'track origin))
+          (direction (alist-get 'direction leg)))
+      (vasttrafik--format-line name time track direction))))
+
+(defun vasttrafik--calculate-trip (token start end)
+  (request
+   "https://api.vasttrafik.se/bin/rest.exe/v2/trip"
+   :type "GET"
+   :headers `(("Authorization" . ,(format "Bearer %s" token)))
+   :params `(("originId" . ,start)
+             ("destId" . ,end)
+             ("date" . ,(vasttrafik--get-date))
+             ("time" . ,(vasttrafik--get-time))
+             ("format" . json))
+   :parser 'json-read
+   :success (cl-function
+             (lambda (&key data &allow-other-keys)
+               (message (string-join
+                         (mapcar (lambda (t)
+                                   (vasttrafik--format-leg (alist-get 'Leg t)))
+                                 (alist-get 'Trip (cdar data)))
+                         "\n"))))
+   :error (cl-function
+           (lambda (&key error-thrown &allow-other-keys)
+             (message "Error while fetching Västtrafik departures: %S" error-thrown)))))
 
 (provide 'vasttrafik)
 

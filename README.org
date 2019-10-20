@@ -15,5 +15,7 @@ In order to use this plugin, you'll need to register a developer account over at
 =vasttrafik-api-key= to that key and you're ready to go!
 
 ** Usage
-Use =vasttrafik-search= to search for a bus stop. The plugin remembers previous
-searches and uses =ivy= for autocompletion.
+Use =vasttrafik-table= to get a time table for a bus stop. The plugin remembers
+previous searches and uses =ivy= for autocompletion.
+
+Use =vasttrafik-trip= to search for a trip between two stops.
