@@ -177,8 +177,8 @@
    :success (cl-function
              (lambda (&key data &allow-other-keys)
                (message (string-join
-                         (mapcar (lambda (t)
-                                   (vasttrafik--format-leg (alist-get 'Leg t)))
+                         (mapcar (lambda (trip)
+                                   (vasttrafik--format-leg (alist-get 'Leg trip)))
                                  (alist-get 'Trip (cdar data)))
                          "\n"))))
    :error (cl-function
