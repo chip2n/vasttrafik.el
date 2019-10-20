@@ -37,7 +37,6 @@
                               (lambda (start)
                                 (vasttrafik--pick-stop token "End: "
                                                        (lambda (end)
-                                                         (message "You picked %s -> %s" start end)
                                                          (vasttrafik--calculate-trip token (cdr start) (cdr end))))))))))
 
 (defun vasttrafik--pick-stop (token prompt handler)
