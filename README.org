@@ -1,0 +1,19 @@
+* vasttrafik.el
+Emacs client for querying Västtrafik's API.
+
+** Installation
+This package is not yet available on MELPA. Download the source code
+and add it to your =load-path=, or use [[https://framagit.org/steckerhalter/quelpa][quelpa]]:
+
+#+begin_src emacs-lisp
+(quelpa '(vasttrafik :repo "chip2n/vasttrafik.el" :fetcher github))
+#+end_src
+
+** Configuration
+In order to use this plugin, you'll need to register a developer account over at
+[[https://developer.vasttrafik.se/portal/#/][Västtratik's Developer Portal]] and generate a key. When this is done, set
+=vasttrafik-api-key= to that key and you're ready to go!
+
+** Usage
+Use =vasttrafik-search= to search for a bus stop. The plugin remembers previous
+searches and uses =ivy= for autocompletion.
