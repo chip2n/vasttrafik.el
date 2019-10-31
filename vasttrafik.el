@@ -27,15 +27,16 @@
 (defvar vasttrafik-api-key nil)
 (defvar vasttrafik--known-stops nil)
 
-(defun vasttrafik--cache-stop (stop)
-  (push s vasttrafik--known-stops)
-  (vasttrafik--persist-stops))
-
 (defun vasttrafik--persist-stops ()
   (unless (file-exists-p "~/.emacs.d/vasttrafik")
     (make-directory "~/.emacs.d/vasttrafik"))
   (with-temp-file "~/.emacs.d/vasttrafik/stops.el"
     (print vasttrafik--known-stops (current-buffer))))
+
+(defun vasttrafik--cache-stop (s)
+  (interative)
+  (push s vasttrafik--known-stops)
+  (vasttrafik--persist-stops))
 
 (defun vasttrafik--restore-stops ()
   (with-temp-buffer
@@ -108,7 +109,7 @@
                                                       (alist-get 'id stop)))
                                  (alist-get 'StopLocation (cdar data)))
                          :action (lambda (s)
-                                   (vasttrafik--cache-stop)
+                                   (vasttrafik--cache-stop s)
                                    (funcall handler s)))))
    :error (cl-function
            (lambda (&key error-thrown &allow-other-keys)
