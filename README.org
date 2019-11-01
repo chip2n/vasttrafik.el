@@ -11,7 +11,7 @@ and add it to your =load-path=, or use [[https://framagit.org/steckerhalter/quel
 
 ** Configuration
 In order to use this plugin, you'll need to register a developer account over at
-[[https://developer.vasttrafik.se/portal/#/][Västtratik's Developer Portal]] and generate a key. When this is done, set
+[[https://developer.vasttrafik.se/portal/#/][Västtrafik's Developer Portal]] and generate a key. When this is done, set
 =vasttrafik-api-key= to that key and you're ready to go!
 
 ** Usage
